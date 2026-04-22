@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Game - StudentTrack</title>
+    <link rel="stylesheet" href="../css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        #game-area {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: crosshair;
+            margin-top: 2rem;
+        }
+        #target {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            display: none;
+            transition: all 0.1s ease;
+            box-shadow: 0 0 20px var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <header style="margin-bottom: 2rem;">
+            <h1>Reaction Clicker</h1>
+            <p style="color: var(--text-secondary);">Test your reflexes! Click the target as many times as you can in 30 seconds.</p>
+        </header>
+
+        <div style="display: flex; gap: 2rem; align-items: center; margin-bottom: 1rem;">
+            <div class="glass-card" style="padding: 1rem 2rem;">
+                <h3 style="margin: 0; background: none; -webkit-text-fill-color: var(--text-secondary); font-size: 0.9rem;">Score</h3>
+                <p id="score" style="font-size: 2rem; font-weight: 700; margin: 0;">0</p>
+            </div>
+            <div class="glass-card" style="padding: 1rem 2rem;">
+                <h3 style="margin: 0; background: none; -webkit-text-fill-color: var(--text-secondary); font-size: 0.9rem;">Time Left</h3>
+                <p id="timer" style="font-size: 2rem; font-weight: 700; margin: 0;">30s</p>
+            </div>
+            <button id="start-btn" class="btn btn-primary" style="padding: 1rem 3rem;">Start Game</button>
+        </div>
+
+        <div id="game-area">
+            <div id="target"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initSidebar } from '../js/components/sidebar.js';
+        import auth from '../js/utils/auth.js';
+
+        auth.checkAuth();
+        initSidebar();
+
+        const target = document.getElementById('target');
+        const gameArea = document.getElementById('game-area');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const startBtn = document.getElementById('start-btn');
+
+        let score = 0;
+        let timeLeft = 30;
+        let gameActive = false;
+        let timerInterval;
+
+        function moveTarget() {
+            if (!gameActive) return;
+            const x = Math.random() * (gameArea.clientWidth - 50);
+            const y = Math.random() * (gameArea.clientHeight - 50);
+            target.style.left = `${x}px`;
+            target.style.top = `${y}px`;
+            target.style.display = 'block';
+        }
+
+        function startGame() {
+            score = 0;
+            timeLeft = 30;
+            gameActive = true;
+            scoreEl.textContent = score;
+            timerEl.textContent = `${timeLeft}s`;
+            startBtn.disabled = true;
+            startBtn.textContent = 'Playing...';
+            
+            moveTarget();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = `${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            target.style.display = 'none';
+            startBtn.disabled = false;
+            startBtn.textContent = 'Restart Game';
+            alert(`Game Over! Your final score: ${score}`);
+        }
+
+        target.addEventListener('mousedown', (e) => {
+            if (!gameActive) return;
+            score++;
+            scoreEl.textContent = score;
+            moveTarget();
+            e.stopPropagation();
+        });
+
+        startBtn.addEventListener('click', startGame);
+    </script>
+</body>
+</html>

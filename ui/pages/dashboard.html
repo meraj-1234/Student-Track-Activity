@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - StudentTrack</title>
+    <link rel="stylesheet" href="../css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="main-content">
+        <header style="margin-bottom: 2rem;">
+            <h1>Welcome, <span id="user-name">Student</span></h1>
+            <p style="color: var(--text-secondary);">Here's your productivity overview</p>
+        </header>
+
+        <div id="attendance-alert" style="display: none;" class="attendance-warning">
+            <strong>⚠️ Warning:</strong> Your attendance is below 75%. Please attend more classes to avoid penalties.
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="glass-card" style="text-align: center;">
+                <h3 style="background: none; -webkit-text-fill-color: var(--text-secondary); font-size: 1rem;">Attendance</h3>
+                <p id="attendance-percent" style="font-size: 2.5rem; font-weight: 700; margin: 0.5rem 0;">0%</p>
+                <p id="attendance-stats" style="font-size: 0.9rem; color: var(--text-secondary);">0 / 0 classes</p>
+            </div>
+            <div class="glass-card" style="text-align: center;">
+                <h3 style="background: none; -webkit-text-fill-color: var(--text-secondary); font-size: 1rem;">Tasks Pending</h3>
+                <p id="tasks-count" style="font-size: 2.5rem; font-weight: 700; margin: 0.5rem 0;">0</p>
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">Tasks to complete</p>
+            </div>
+            <div class="glass-card" style="text-align: center;">
+                <h3 style="background: none; -webkit-text-fill-color: var(--text-secondary); font-size: 1rem;">Assignments</h3>
+                <p id="assignments-count" style="font-size: 2.5rem; font-weight: 700; margin: 0.5rem 0;">0</p>
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">Pending submissions</p>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <h2>Recent Activities</h2>
+            <p style="color: var(--text-secondary);">Check individual modules for more details.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initSidebar } from '../js/components/sidebar.js';
+        import auth from '../js/utils/auth.js';
+        import api from '../js/services/api.js';
+
+        auth.checkAuth();
+        initSidebar();
+
+        const user = auth.getUser();
+        document.getElementById('user-name').textContent = user.name;
+
+        async function loadDashboardData() {
+            try {
+                // Fetch Attendance Summary
+                const attendance = await api.get(`/attendance/summary/${user.id}`);
+                const percent = attendance.attendancePercentage.toFixed(1);
+                const attendanceEl = document.getElementById('attendance-percent');
+                attendanceEl.textContent = `${percent}%`;
+                document.getElementById('attendance-stats').textContent = `${attendance.attendedClasses} / ${attendance.totalClassesHeld} classes`;
+
+                if (percent < 75) {
+                    attendanceEl.style.color = 'var(--accent-red)';
+                    document.getElementById('attendance-alert').style.display = 'block';
+                } else {
+                    attendanceEl.style.color = 'var(--accent-green)';
+                }
+
+                // Fetch Tasks
+                const tasks = await api.get(`/tasks/student/${user.id}`);
+                const pendingTasks = tasks.filter(t => t.status === 'PENDING').length;
+                document.getElementById('tasks-count').textContent = pendingTasks;
+
+                // Fetch Assignments
+                const assignments = await api.get(`/assignments/student/${user.id}`);
+                const pendingAssignments = assignments.filter(a => a.status === 'PENDING').length;
+                document.getElementById('assignments-count').textContent = pendingAssignments;
+
+            } catch (err) {
+                console.error('Error loading dashboard:', err);
+            }
+        }
+
+        loadDashboardData();
+    </script>
+</body>
+</html>

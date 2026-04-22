@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignments - StudentTrack</title>
+    <link rel="stylesheet" href="../css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="main-content">
+        <header style="margin-bottom: 2rem;">
+            <h1>Assignments</h1>
+            <p style="color: var(--text-secondary);">Track your academic submissions</p>
+        </header>
+
+        <div class="glass-card" style="margin-bottom: 2rem;">
+            <h3>Add New Assignment</h3>
+            <form id="assignment-form" style="display: flex; gap: 1rem; align-items: flex-end; margin-top: 1rem;">
+                <div class="form-group" style="margin-bottom: 0; flex: 2;">
+                    <label>Assignment Title</label>
+                    <input type="text" id="title" required placeholder="e.g. Physics Lab Report">
+                </div>
+                <div class="form-group" style="margin-bottom: 0; flex: 1;">
+                    <label>Deadline</label>
+                    <input type="date" id="deadline" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Add</button>
+            </form>
+        </div>
+
+        <div class="glass-card">
+            <h3>Assignments List</h3>
+            <div id="assignments-list" style="margin-top: 1.5rem; display: grid; gap: 1rem;">
+                <!-- Assignments will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initSidebar } from '../js/components/sidebar.js';
+        import auth from '../js/utils/auth.js';
+        import api from '../js/services/api.js';
+
+        auth.checkAuth();
+        initSidebar();
+
+        const user = auth.getUser();
+
+        async function loadAssignments() {
+            try {
+                const data = await api.get(`/assignments/student/${user.id}`);
+                const list = document.getElementById('assignments-list');
+                list.innerHTML = data.length ? data.map(item => `
+                    <div class="glass-card" style="padding: 1rem; display: flex; justify-content: space-between; align-items: center; background: rgba(30, 41, 59, 0.3);">
+                        <div>
+                            <h4 style="margin: 0;">${item.title}</h4>
+                            <small style="color: ${new Date(item.deadline) < new Date() && item.status === 'PENDING' ? 'var(--accent-red)' : 'var(--text-secondary)'}">
+                                Deadline: ${item.deadline} ${new Date(item.deadline) < new Date() && item.status === 'PENDING' ? '(Overdue)' : ''}
+                            </small>
+                        </div>
+                        <div>
+                            ${item.status === 'PENDING' ? 
+                                `<button onclick="window.submitAssignment(${item.id})" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.8rem;">Mark Submitted</button>` : 
+                                `<span style="color: var(--accent-green);">Submitted ✅</span>`
+                            }
+                        </div>
+                    </div>
+                `).reverse().join('') : '<p style="color: var(--text-secondary);">No assignments yet.</p>';
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        window.submitAssignment = async (id) => {
+            try {
+                await api.put(`/assignments/${id}/status?status=SUBMITTED`);
+                loadAssignments();
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+
+        document.getElementById('assignment-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('title').value;
+            const deadline = document.getElementById('deadline').value;
+
+            try {
+                await api.post('/assignments', { studentId: user.id, title, deadline });
+                document.getElementById('title').value = '';
+                loadAssignments();
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        loadAssignments();
+    </script>
+</body>
+</html>

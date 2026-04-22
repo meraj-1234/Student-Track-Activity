@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library - StudentTrack</title>
+    <link rel="stylesheet" href="../css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="main-content">
+        <header style="margin-bottom: 2rem;">
+            <h1>Digital Library</h1>
+            <p style="color: var(--text-secondary);">Browse and borrow academic resources</p>
+        </header>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+            <div class="glass-card">
+                <h3>Available Books</h3>
+                <div id="books-list" style="margin-top: 1.5rem; display: grid; gap: 1rem;">
+                    <!-- Books will be injected here -->
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <h3>Your Borrows</h3>
+                <div id="borrows-list" style="margin-top: 1.5rem; display: grid; gap: 1rem;">
+                    <!-- Borrows will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initSidebar } from '../js/components/sidebar.js';
+        import auth from '../js/utils/auth.js';
+        import api from '../js/services/api.js';
+
+        auth.checkAuth();
+        initSidebar();
+
+        const user = auth.getUser();
+
+        async function loadLibrary() {
+            try {
+                const books = await api.get('/library/books');
+                const borrows = await api.get(`/library/borrowed/${user.id}`);
+
+                const booksEl = document.getElementById('books-list');
+                booksEl.innerHTML = books.length ? books.map(book => `
+                    <div class="glass-card" style="padding: 1rem; display: flex; justify-content: space-between; align-items: center; background: rgba(30, 41, 59, 0.3);">
+                        <div>
+                            <h4 style="margin: 0;">${book.title}</h4>
+                            <small style="color: var(--text-secondary);">by ${book.author}</small>
+                        </div>
+                        <div>
+                            ${book.availability ? 
+                                `<button onclick="window.borrowBook(${book.id})" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">Borrow</button>` : 
+                                `<span style="color: var(--accent-red);">Unavailable</span>`
+                            }
+                        </div>
+                    </div>
+                `).join('') : '<p style="color: var(--text-secondary);">No books available.</p>';
+
+                const borrowsEl = document.getElementById('borrows-list');
+                borrowsEl.innerHTML = borrows.length ? borrows.map(item => `
+                    <div class="glass-card" style="padding: 1rem; background: rgba(30, 41, 59, 0.3);">
+                        <h4 style="margin: 0;">Book ID: ${item.bookId}</h4>
+                        <small style="color: var(--text-secondary);">Issued: ${item.issueDate}</small>
+                        <div style="margin-top: 0.5rem;">
+                            ${!item.returnDate ? 
+                                `<button onclick="window.returnBook(${item.id})" class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Return</button>` : 
+                                `<span style="color: var(--accent-green);">Returned (${item.returnDate})</span>`
+                            }
+                        </div>
+                    </div>
+                `).reverse().join('') : '<p style="color: var(--text-secondary);">No active borrows.</p>';
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        window.borrowBook = async (bookId) => {
+            try {
+                await api.post(`/library/borrow?studentId=${user.id}&bookId=${bookId}`);
+                loadLibrary();
+                alert('Book borrowed successfully!');
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+
+        window.returnBook = async (borrowId) => {
+            try {
+                await api.post(`/library/return/${borrowId}`);
+                loadLibrary();
+                alert('Book returned!');
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+
+        loadLibrary();
+    </script>
+</body>
+</html>

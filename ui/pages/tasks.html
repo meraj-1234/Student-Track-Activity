@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasks - StudentTrack</title>
+    <link rel="stylesheet" href="../css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="main-content">
+        <header style="margin-bottom: 2rem;">
+            <h1>Daily Tasks</h1>
+            <p style="color: var(--text-secondary);">Manage your study schedule</p>
+        </header>
+
+        <div class="glass-card" style="margin-bottom: 2rem;">
+            <h3>Add New Task</h3>
+            <form id="task-form" style="display: flex; gap: 1rem; align-items: flex-end; margin-top: 1rem;">
+                <div class="form-group" style="margin-bottom: 0; flex: 2;">
+                    <label>Task Title</label>
+                    <input type="text" id="task-title" required placeholder="e.g. Study Math for 2 hours">
+                </div>
+                <div class="form-group" style="margin-bottom: 0; flex: 1;">
+                    <label>Date</label>
+                    <input type="date" id="task-date" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Task</button>
+            </form>
+        </div>
+
+        <div class="glass-card">
+            <h3>Your Tasks</h3>
+            <div id="tasks-list" style="margin-top: 1.5rem; display: grid; gap: 1rem;">
+                <!-- Tasks will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initSidebar } from '../js/components/sidebar.js';
+        import auth from '../js/utils/auth.js';
+        import api from '../js/services/api.js';
+
+        auth.checkAuth();
+        initSidebar();
+
+        const user = auth.getUser();
+        document.getElementById('task-date').valueAsDate = new Date();
+
+        async function loadTasks() {
+            try {
+                const tasks = await api.get(`/tasks/student/${user.id}`);
+                const list = document.getElementById('tasks-list');
+                list.innerHTML = tasks.length ? tasks.map(task => `
+                    <div class="glass-card" style="padding: 1rem; display: flex; justify-content: space-between; align-items: center; background: rgba(30, 41, 59, 0.3);">
+                        <div>
+                            <h4 style="margin: 0; text-decoration: ${task.status === 'COMPLETED' ? 'line-through' : 'none'}">${task.title}</h4>
+                            <small style="color: var(--text-secondary);">${task.date}</small>
+                        </div>
+                        <div>
+                            ${task.status === 'PENDING' ? 
+                                `<button onclick="window.completeTask(${task.id})" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.8rem;">Complete</button>` : 
+                                `<span style="color: var(--accent-green);">Completed ✅</span>`
+                            }
+                        </div>
+                    </div>
+                `).reverse().join('') : '<p style="color: var(--text-secondary);">No tasks yet.</p>';
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        window.completeTask = async (id) => {
+            try {
+                await api.put(`/tasks/${id}/status?status=COMPLETED`);
+                loadTasks();
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+
+        document.getElementById('task-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('task-title').value;
+            const date = document.getElementById('task-date').value;
+
+            try {
+                await api.post('/tasks', { studentId: user.id, title, date });
+                document.getElementById('task-title').value = '';
+                loadTasks();
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        loadTasks();
+    </script>
+</body>
+</html>
