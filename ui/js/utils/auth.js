@@ -8,7 +8,7 @@ const auth = {
         localStorage.removeItem('user');
         window.location.href = '/ui/pages/index.html';
     },
-    isAuthenticated: () => !!localStorage.getItem('token'),
+    isAuthenticated: () => !!localStorage.getItem('user'),
     checkAuth: () => {
         if (!auth.isAuthenticated()) {
             window.location.href = '/ui/pages/index.html';

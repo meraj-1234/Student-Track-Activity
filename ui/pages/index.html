@@ -40,7 +40,6 @@
 
             try {
                 const data = await api.post('/auth/login', { email, password });
-                auth.setToken(data.token);
                 auth.setUser(data);
                 window.location.href = 'dashboard.html';
             } catch (err) {

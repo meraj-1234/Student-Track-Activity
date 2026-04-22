@@ -1,16 +1,10 @@
 const BASE_URL = 'http://localhost:8080/api';
 
 async function request(endpoint, options = {}) {
-    const token = localStorage.getItem('token');
-    
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers,
     };
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
 
     const config = {
         ...options,
@@ -21,8 +15,7 @@ async function request(endpoint, options = {}) {
         const response = await fetch(`${BASE_URL}${endpoint}`, config);
         
         if (response.status === 401) {
-            // Unauthorized - clear token and redirect to login
-            localStorage.removeItem('token');
+            // Unauthorized - clear user and redirect to login
             localStorage.removeItem('user');
             window.location.href = '/ui/pages/index.html';
             return;
